@@ -1,99 +1,98 @@
-import logo from './logo.svg';
-import './App.css';
-import { useEffect, useRef, useState } from 'react';
-import Child from './components/Child';
-import Liste from './list/Liste';
+import "./App.css";
+import { useEffect, useRef, useState } from "react";
+import Liste from "./components/list/Liste";
+import axios from "axios";
+import config from "./config/config";
+import Create from "./components/create/Create";
 
 function App() {
-  const [data,setData] = useState(
-    [
-      {
-        "id": 1,
-        "task": "Give dog a bath",
-        "complete": true
-      }, 
-      {
-        "id": 2,
-        "task": "Do laundry",
-        "complete": true
-      }, {
-        "id": 3,
-        "task": "Vacuum floor",
-        "complete": false
-      }, {
-        "id": 4,
-        "task": "Feed cat",
-        "complete": true
-      }, {
-        "id": 5,
-        "task": "Change light bulbs",
-        "complete": false
-      }, {
-        "id": 6,
-        "task": "Go to Store",
-        "complete": true
-      }, {
-        "id": 7,
-        "task": "Fill gas tank",
-        "complete": true
-      }, {
-        "id": 8,
-        "task": "Change linens",
-        "complete": false
-      }, {
-        "id": 9,
-        "task": "Rake leaves",
-        "complete": true
-      }]
-)
-  const [input, setInput] = useState("")
-  const isShowInitialize = useRef(false) // arbitré
-  const inputEl = useRef(null)
+  const [data, setData] = useState([]);
+  const [input,setInput] = useState('')
+  const isShowInitialize = useRef(false); // arbitré
+  const inputEl = useRef(null);
+  const [show, setShow] = useState(false)
 
   useEffect(() => {
-      console.log(data)
-    }, [])
+    console.log(data);
+    axios.get(config.baseUrl + 'api/listes').then(res => {
+      console.log('res0',res);
+      setData(res.data)
+    })
+  }, []);
   // watch if input change valeur
   useEffect(() => {
     if (isShowInitialize.current) {
-      console.log('change valeur ');
+      console.log("change valeur ");
     } else {
-      isShowInitialize.current = false
+      isShowInitialize.current = false;
     }
-  }, [input])
-  
+  }, [input]);
+
   function LoopComponent() {
     return data.map((elemnt, index) => {
-      return <Liste 
-        index={index}
-        elemnt={elemnt} 
-        removeInListe= {removeInListe}
-        key={index}/>
+      return (
+        <Liste
+          index={index}
+          elemnt={elemnt}
+          removeInListe={removeInListe}
+          key={index}
+          modifierListe={modifierListe}
+        />
+      );
+    });
+  }
+  function modifierListe(elemnt) {
+    console.log('modif');
+    let i = data.findIndex(el => el.id == elemnt.id)
+    console.log('index',i);
+    if (i > -1) {
+      data[i] = elemnt
+      console.log('data',data);
+      setData([...data])
+    }
+  }
+  function removeInListe(index,elemnt) {
+    axios.delete(config.baseUrl + 'api/listes/delete/' + elemnt.id).then(res => {
+      if (res.data.succes) {
+        setData(data.filter((dat, i) => i !== index));
+      }
     })
   }
-    
-  function removeInListe(index) {
-    setData(data.filter((dat,i) => i !== index))
-  }
-  const declencher = () => {
-    console.log('declencher depuis parent')
-  }
-  function ajouter() {
-    console.log(inputEl.current.value);
-    setData ([...data,{id: data.length+1,task: inputEl.current.value,complete: true}])
+  function ajouter(form,closeModal) {
+    console.log("ezeze",form);
+    axios.post(config.baseUrl + 'api/listes/create',form).then(res => {
+      console.log("res",res);
+      if (res.data.succes) {
+        closeModal.current.click()
+        setData([...data,res.data.succes])
+      }
+    })
   }
   return (
     <div className="App">
-      <header className="App-header">
-        <div>{input}</div>
-        <div className="input-group">
-         <input type="text" onChange={(e) => setInput(e.target.value)} value={input}/>
-        </div>
-        <Child declencher={() => declencher()} inp={input}/>
-        {/* boucle */}
-       <LoopComponent/>
-        <input ref={inputEl} type="text" placeholder="ajouter autre liste"/>
-       <button onClick={ajouter}> add</button>
+      <header className="App-header container">
+        <button onClick={() => setShow(true)} type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+          Ajouter
+        </button>
+         <Create ajouter={ajouter}/> 
+        
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Firstname</th>
+              <th>Lastname</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Addres</th>
+              <th>Action</th>
+              
+            </tr>
+          </thead>
+          <tbody>
+            <LoopComponent/>
+              
+          </tbody>
+        </table>
       </header>
     </div>
   );
